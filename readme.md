@@ -2,7 +2,7 @@
 
 ## Usage
 
-The environment variable **XDEBUG_CONFIG** let's you configure the XDebug PHP extension. For example to provide the Docker host IP address set it as `remote_host=<host ip>`.
+The environment variable **XDEBUG_CONFIG** let's you configure the XDebug PHP extension. For example to provide the Docker host IP address set it as `remote_host=<host ip>`. For Docker 18.03.x and up you should just be able to use `remote_host=host.docker.internal`.
 
 ## Docker Compose
 
@@ -34,7 +34,7 @@ services:
       WORDPRESS_DB_HOST: db:3306
       WORDPRESS_DB_USER: wordpress
       WORDPRESS_DB_PASSWORD: wordpress
-      XDEBUG_CONFIG: remote_host=192.168.1.1
+      XDEBUG_CONFIG: remote_host=remote_host=host.docker.internal
 ```
 
 ## Visual Studio Code
