@@ -2,7 +2,9 @@
 
 ## Usage
 
-The environment variable **XDEBUG_CONFIG** let's you configure the XDebug PHP extension. For example to provide the Docker host IP address set it as `remote_host=<host ip>`. For Docker 18.03.x and up you should just be able to use `remote_host=host.docker.internal`.
+The environment variable **XDEBUG_CONFIG** let's you configure the XDebug PHP extension.
+
+For example to allow XDebug to try to automatically connect back to the client that made the HTTP request you would set it as `remote_connect_back=1`. Or in scenarios where that is not feasible you would provide the Docker host IP address and set it as `remote_host=<host ip>`. For Docker 18.03.x and up you can just use `remote_host=host.docker.internal`.
 
 ## Docker Compose
 
@@ -13,7 +15,7 @@ version: '3.3'
 
 services:
   db:
-    image: mysql
+    image: mysql:5.7
     restart: on-failure
     environment:
       MYSQL_ROOT_PASSWORD: somewordpress
