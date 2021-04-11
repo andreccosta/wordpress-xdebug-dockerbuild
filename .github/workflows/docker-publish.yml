@@ -61,7 +61,7 @@ jobs:
 
       - name: Push tag
         id: push-tag
-        if: ${{ steps.check-tag.outputs.tag_exists }} == 'false'
+        if: ${{ steps.check-tag.outputs.tag_exists == 'false' }}
         uses: actions/github-script@v3
         with:
           github-token: ${{secrets.GITHUB_TOKEN}}
@@ -77,7 +77,7 @@ jobs:
     needs: [tag, test]
 
     runs-on: ubuntu-latest
-    if: ${{ needs.tag.outputs.tag_exists }} == 'false'
+    if: ${{ needs.tag.outputs.tag_exists == 'false' }}
 
     steps:
       - uses: actions/checkout@v2
