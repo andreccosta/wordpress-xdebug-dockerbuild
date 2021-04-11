@@ -62,7 +62,7 @@ jobs:
             })
 
   push:
-    needs: test
+    needs: [tag, test]
 
     runs-on: ubuntu-latest
 
