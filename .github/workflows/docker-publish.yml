@@ -7,6 +7,8 @@ on:
 
     tags:
       - wp*
+  schedule:
+   - cron: "0 4 * * 0"
 
 env:
   IMAGE_NAME: wordpress-xdebug
@@ -79,7 +81,7 @@ jobs:
     needs: [tag, test]
 
     runs-on: ubuntu-latest
-    #if: needs.tag.outputs.tag_exists == 0
+    if: needs.tag.outputs.tag_exists == 0
 
     steps:
       - uses: actions/checkout@v2
@@ -105,5 +107,5 @@ jobs:
 
           docker tag $IMAGE_NAME $IMAGE_ID:latest
           docker tag $IMAGE_NAME $IMAGE_ID:$VERSION
-          docker push $IMAGE_ID:latest
           docker push $IMAGE_ID:$VERSION
+          docker push $IMAGE_ID:latest
