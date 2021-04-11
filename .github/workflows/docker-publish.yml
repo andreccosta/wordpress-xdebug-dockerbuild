@@ -1,4 +1,4 @@
-name: Docker
+name: Docker publish
 
 on:
   push:
@@ -6,29 +6,55 @@ on:
       - main
 
     tags:
-      - v*
-
-  pull_request:
+      - wp*
 
 env:
   IMAGE_NAME: wordpress-xdebug
 
 jobs:
-  test:
+  tag:
     runs-on: ubuntu-latest
+
+    outputs:
+      tag: ${{ steps.create-tag.outputs.tag }}
 
     steps:
       - uses: actions/checkout@v2
 
-      - name: Run tests
-        run: |
-          docker build . --file Dockerfile
+      - name: Get dockerhub wordpress latest version tag
+        id: image-tag
+        uses: ./.github/actions/get-dockerhub-version-tag
+        with:
+          org: 'library'
+          repo: 'wordpress'
+
+      - name: Get Xdebug pecl package version
+        id: package-version
+        uses: ./.github/actions/get-pecl-package-version
+        with:
+          package: 'xdebug'
+          stability: 'stable'
+
+      - name: Create tag
+        id: create-tag
+        run: echo "::set-output name=tag::wp${{ steps.image-tag.outputs.tag}}-xdebug${{ steps.package-version.outputs.version }}"
+
+      - name: Push tag
+        uses: actions/github-script@v3
+        with:
+          github-token: ${{secrets.GITHUB_TOKEN}}
+          script: |
+            github.git.createRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: "refs/tags/${{ steps.create-tag.outputs.tag }}",
+              sha: context.sha
+            })
 
   push:
     needs: test
 
     runs-on: ubuntu-latest
-    if: github.event_name == 'push'
 
     steps:
       - uses: actions/checkout@v2
@@ -46,17 +72,12 @@ jobs:
           # Change all uppercase to lowercase
           IMAGE_ID=$(echo $IMAGE_ID | tr '[A-Z]' '[a-z]')
 
-          # Strip git ref prefix from version
-          VERSION=$(echo "${{ github.ref }}" | sed -e 's,.*/\(.*\),\1,')
-
-          # Strip "v" prefix from tag name
-          [[ "${{ github.ref }}" == "refs/tags/"* ]] && VERSION=$(echo $VERSION | sed -e 's/^v//')
-
-          # Use Docker `latest` tag convention
-          [ "$VERSION" == "main" ] && VERSION=latest
+          # Version from created tag
+          VERSION=${{ needs.tag.outputs.tag }}
 
           echo IMAGE_ID=$IMAGE_ID
           echo VERSION=$VERSION
 
+          docker tag $IMAGE_NAME $IMAGE_ID:latest
           docker tag $IMAGE_NAME $IMAGE_ID:$VERSION
           docker push $IMAGE_ID:$VERSION
