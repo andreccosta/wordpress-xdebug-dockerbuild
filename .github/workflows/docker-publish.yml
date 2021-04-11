@@ -79,7 +79,7 @@ jobs:
     needs: [tag, test]
 
     runs-on: ubuntu-latest
-    if: needs.tag.outputs.tag_exists == 0
+    #if: needs.tag.outputs.tag_exists == 0
 
     steps:
       - uses: actions/checkout@v2
