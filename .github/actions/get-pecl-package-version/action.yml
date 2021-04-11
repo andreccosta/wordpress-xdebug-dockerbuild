@@ -1,0 +1,19 @@
+name: 'Get PECL package latest version'
+description: 'Get latest version for a PECL package'
+inputs:
+  package:
+    description: Package name
+    required: true
+  stability:
+    description: Version stability
+    required: false
+    default: 'stable'
+  filter:
+    description: Version filter
+    required: false
+outputs:
+  version:
+    description: The latest version
+runs:
+  using: 'docker'
+  image: 'Dockerfile'
