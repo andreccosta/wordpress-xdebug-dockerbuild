@@ -31,6 +31,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
 
       - name: Get dockerhub wordpress latest version tag
         id: image-tag
@@ -54,14 +56,14 @@ jobs:
         id: check-tag
         run: |
           if git rev-parse "${{ steps.create-tag.outputs.tag }}" >/dev/null 2>&1; then
-            echo "::set-output name=tag_exists::true"
+            echo "::set-output name=tag_exists::1"
           else
-            echo "::set-output name=tag_exists::false"
+            echo "::set-output name=tag_exists::0"
           fi
 
       - name: Push tag
         id: push-tag
-        if: ${{ steps.check-tag.outputs.tag_exists == 'false' }}
+        if: steps.check-tag.outputs.tag_exists == 0
         uses: actions/github-script@v3
         with:
           github-token: ${{secrets.GITHUB_TOKEN}}
@@ -77,7 +79,7 @@ jobs:
     needs: [tag, test]
 
     runs-on: ubuntu-latest
-    if: ${{ needs.tag.outputs.tag_exists == 'false' }}
+    if: needs.tag.outputs.tag_exists == 0
 
     steps:
       - uses: actions/checkout@v2
