@@ -12,6 +12,16 @@ env:
   IMAGE_NAME: wordpress-xdebug
 
 jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Build
+        run: |
+          docker build . --file Dockerfile
+
   tag:
     runs-on: ubuntu-latest
 
