@@ -1,0 +1,16 @@
+name: 'Get Docker Hub image version tag'
+description: 'Get latest version tag for an image on Docker Hub'
+inputs:
+  org:
+    description: Docker Hub org
+    required: false
+    default: 'library'
+  repo:
+    description: Docker Hub repo
+    required: true
+outputs:
+  tag:
+    description: The latest version tag
+runs:
+  using: 'docker'
+  image: 'Dockerfile'
