@@ -1,17 +1,20 @@
-# Wordpress XDebug Docker image
+# Wordpress with XDebug Docker image
 
 ## Usage
 
-The environment variable **XDEBUG_CONFIG** let's you configure the XDebug PHP extension.
+The XDebug extension can be configured via environment variables. Namely **XDEBUG_MODE** and **XDEBUG_CONFIG**.
 
-For example to allow XDebug to try to automatically connect back to the client that made the HTTP request you would set it as `remote_connect_back=1`. Or in scenarios where that is not feasible you would provide the Docker host IP address and set it as `remote_host=<host ip>`. For Docker 18.03.x and up you can just use `remote_host=host.docker.internal`.
+For example to allow XDebug to try to automatically connect back to the client that made the HTTP request you would add `discover_client_host=true` to **XDEBUG_CONFIG**. Or in scenarios where that is not feasible you would provide the Docker host IP address and set it as `client_host=<host ip>`.
+For Docker 18.03.x and up you should be able to just use `client_host=host.docker.internal`.
+
+You can check additional information about what XDebug settings are available in the documentation [here](https://xdebug.org/docs/all_settings).
 
 ## Docker Compose
 
 Example configuration file `docker-compose.yml`:
 
 ```yml
-version: '3.3'
+version: '3.9'
 
 services:
   db:
