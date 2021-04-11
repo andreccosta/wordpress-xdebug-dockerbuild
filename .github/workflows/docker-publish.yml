@@ -27,7 +27,7 @@ jobs:
 
     outputs:
       tag: ${{ steps.create-tag.outputs.tag }}
-      tag_exists: ${{ steps.check-tag.outputs.tag }}
+      tag_exists: ${{ steps.check-tag.outputs.tag_exists }}
 
     steps:
       - uses: actions/checkout@v2
@@ -105,4 +105,5 @@ jobs:
 
           docker tag $IMAGE_NAME $IMAGE_ID:latest
           docker tag $IMAGE_NAME $IMAGE_ID:$VERSION
+          docker push $IMAGE_ID:latest
           docker push $IMAGE_ID:$VERSION
