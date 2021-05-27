@@ -6,7 +6,7 @@ The XDebug extension can be configured via environment variables. Namely **XDEBU
 
 For example to allow XDebug to try to automatically connect back to the client that made the HTTP request you would add `discover_client_host=true` to **XDEBUG_CONFIG**. Or in scenarios where that is not feasible you would provide the Docker host IP address and set it as `client_host=<host ip>`.
 
-For Docker 18.03.x and up you should be able to just use `client_host=host.docker.internal`.
+For Docker 18.03.x and up, non-Linux users should be able to just use `client_host=host.docker.internal`. Linux users should use `client_host=172.17.0.1` instead.
 
 You can check additional information about what XDebug settings are available in the documentation [here](https://xdebug.org/docs/all_settings).
 
