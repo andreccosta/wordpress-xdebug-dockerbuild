@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -20,27 +21,18 @@ type dhtag struct {
 
 type dhrepo struct {
 	Count   int     `json:"count"`
+	Next    string  `json:"next"`
 	Results []dhtag `json:"results"`
 }
 
-func main() {
-	org := os.Getenv("INPUT_ORG")
-	repo := os.Getenv("INPUT_REPO")
+var org string
+var repo string
 
-	if org == "" {
-		org = "library"
-	}
+var httpClient = http.Client{
+	Timeout: time.Second * 2,
+}
 
-	if repo == "" {
-		log.Fatal("Repo is required")
-	}
-
-	url := fmt.Sprintf(`https://hub.docker.com/v2/repositories/%s/%s/tags/?page_size=1000&ordering=last_updated`, org, repo)
-
-	dhClient := http.Client{
-		Timeout: time.Second * 2, // Maximum of 2 secs
-	}
-
+func getTags(url string) (tags []*semver.Version, err error) {
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		log.Fatal(err)
@@ -48,7 +40,7 @@ func main() {
 
 	req.Header.Set("User-Agent", "get-dockerhub-version-tag-action")
 
-	res, getErr := dhClient.Do(req)
+	res, getErr := httpClient.Do(req)
 	if getErr != nil {
 		log.Fatal(getErr)
 	}
@@ -64,7 +56,6 @@ func main() {
 		log.Fatal(unmarshalErr)
 	}
 
-	var tags []*semver.Version
 	for _, tag := range dhrepo1.Results {
 		matched, _ := regexp.MatchString(`^[vV]*[0-9]+\.[0-9]+\.[0-9]+$`, tag.Name)
 
@@ -74,8 +65,33 @@ func main() {
 		}
 	}
 
-	if len(tags) == 0 {
-		log.Fatal(fmt.Sprintf(`Unable to find tags for %s/%s`, org, repo))
+	if len(tags) > 0 {
+		return tags, nil
+	} else if dhrepo1.Next != "" {
+		return getTags(dhrepo1.Next)
+	} else {
+		return nil, errors.New(fmt.Sprintf(`Unable to find tags for %s/%s`, org, repo))
+	}
+}
+
+func main() {
+	org = os.Getenv("INPUT_ORG")
+	repo = os.Getenv("INPUT_REPO")
+	page_size := 100
+
+	if org == "" {
+		org = "library"
+	}
+
+	if repo == "" {
+		log.Fatal("Repo is required")
+	}
+
+	url := fmt.Sprintf(`https://hub.docker.com/v2/repositories/%s/%s/tags/?page=1&page_size=%d&ordering=last_updated`, org, repo, page_size)
+	tags, err := getTags(url)
+
+	if err != nil {
+		log.Fatal(err)
 	}
 
 	semver.Sort(tags)
