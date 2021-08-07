@@ -8,7 +8,7 @@ on:
     tags:
       - wp*
   schedule:
-   - cron: "0 4 * * 0"
+    - cron: '0 4 * * 0'
 
 env:
   IMAGE_NAME: wordpress-xdebug
@@ -53,7 +53,7 @@ jobs:
       - name: Create tag
         id: create-tag
         run: echo "::set-output name=tag::wp${{ steps.image-tag.outputs.tag}}-xdebug${{ steps.package-version.outputs.version }}"
-        
+
       - name: Check if tag already exists
         id: check-tag
         run: |
@@ -89,23 +89,36 @@ jobs:
       - name: Build image
         run: docker build . --file Dockerfile --tag $IMAGE_NAME
 
-      - name: Log into registry
-        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login docker.pkg.github.com -u ${{ github.actor }} --password-stdin
+      - name: Login to Docker Hub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ github.actor }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Login to Github Container Registry
+        uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Push image
         run: |
-          IMAGE_ID=docker.pkg.github.com/${{ github.repository }}/$IMAGE_NAME
+          GH_IMAGE_ID=ghcr.io/${{ github.repository }}/$IMAGE_NAME
+          DH_IMAGE_ID=${{ github.actor }}/$IMAGE_NAME
 
           # Change all uppercase to lowercase
-          IMAGE_ID=$(echo $IMAGE_ID | tr '[A-Z]' '[a-z]')
+          GH_IMAGE_ID=$(echo $GH_IMAGE_ID | tr '[A-Z]' '[a-z]')
+          DH_IMAGE_ID=$(echo $DH_IMAGE_ID | tr '[A-Z]' '[a-z]')
 
           # Version from created tag
           VERSION=${{ needs.tag.outputs.tag }}
 
-          echo IMAGE_ID=$IMAGE_ID
-          echo VERSION=$VERSION
-
-          docker tag $IMAGE_NAME $IMAGE_ID:latest
-          docker tag $IMAGE_NAME $IMAGE_ID:$VERSION
-          docker push $IMAGE_ID:$VERSION
-          docker push $IMAGE_ID:latest
+          docker tag $IMAGE_NAME $GH_IMAGE_ID:latest
+          docker tag $IMAGE_NAME $GH_IMAGE_ID:$VERSION
+          docker tag $IMAGE_NAME $DH_IMAGE_ID:latest
+          docker tag $IMAGE_NAME $DH_IMAGE_ID:$VERSION
+          docker push $GH_IMAGE_ID:$VERSION
+          docker push $GH_IMAGE_ID:latest
+          docker push $DH_IMAGE_ID:$VERSION
+          docker push $DH_IMAGE_ID:latest
