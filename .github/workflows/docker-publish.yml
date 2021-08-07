@@ -78,6 +78,7 @@ jobs:
             })
 
   push:
+    environment: production
     needs: [tag, test]
 
     runs-on: ubuntu-latest
