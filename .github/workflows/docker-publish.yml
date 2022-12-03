@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-
     tags:
       - wp*
   schedule:
@@ -18,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Build
         run: |
@@ -32,9 +31,7 @@ jobs:
       tag_exists: ${{ steps.check-tag.outputs.tag_exists }}
 
     steps:
-      - uses: actions/checkout@v2
-        with:
-          fetch-depth: 0
+      - uses: actions/checkout@v3
 
       - name: Get dockerhub wordpress latest version tag
         id: image-tag
@@ -85,7 +82,7 @@ jobs:
     if: needs.tag.outputs.tag_exists == 0
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Build image
         run: docker build . --file Dockerfile --tag $IMAGE_NAME
@@ -97,7 +94,7 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Login to Github Container Registry
-        uses: docker/login-action@v1
+        uses: docker/login-action@v2
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
