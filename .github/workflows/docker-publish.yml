@@ -21,7 +21,7 @@ jobs:
 
       - name: Build
         run: |
-          docker build . --file Dockerfile
+          docker build -f Dockerfile .
 
   tag:
     runs-on: ubuntu-latest
@@ -49,15 +49,15 @@ jobs:
 
       - name: Create tag
         id: create-tag
-        run: echo "::set-output name=tag::wp${{ steps.image-tag.outputs.tag}}-xdebug${{ steps.package-version.outputs.version }}"
+        run: echo "tag=wp${{ steps.image-tag.outputs.tag}}-xdebug${{ steps.package-version.outputs.version }}" >> $GITHUB_OUTPUT
 
       - name: Check if tag already exists
         id: check-tag
         run: |
           if git rev-parse "${{ steps.create-tag.outputs.tag }}" >/dev/null 2>&1; then
-            echo "::set-output name=tag_exists::1"
+            echo "tag_exists=1" >> $GITHUB_OUTPUT
           else
-            echo "::set-output name=tag_exists::0"
+            echo "tag_exists=0" >> $GITHUB_OUTPUT
           fi
 
       - name: Push tag

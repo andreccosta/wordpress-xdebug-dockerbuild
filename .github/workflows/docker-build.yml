@@ -12,4 +12,4 @@ jobs:
 
       - name: Build
         run: |
-          docker build . --file Dockerfile
+          docker build -f Dockerfile .

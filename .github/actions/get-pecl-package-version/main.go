@@ -89,5 +89,31 @@ func main() {
 	}
 
 	semver.Sort(versions)
-	fmt.Println(fmt.Sprintf(`::set-output name=version::%s`, versions[len(versions)-1]))
+
+	setOutput("version", versions[len(versions)-1].String())
 }
+
+func setOutput(name, value string) error {
+	file := os.Getenv("GITHUB_OUTPUT")
+	if file == "" {
+		return errors.New("GITHUB_OUTPUT env variable not specified")
+	}
+
+	return appendToFile(file, fmt.Sprintf("%s=%s\n", name, value))
+}
+
+func appendToFile(file, content string) error {
+	f, err := os.OpenFile(file, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644)
+	if err != nil {
+		return err
+	}
+
+	_, err = f.WriteString(content)
+	closeErr := f.Close()
+	if err != nil {
+		return err
+	}
+
+	return closeErr
+}
+
