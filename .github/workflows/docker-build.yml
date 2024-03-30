@@ -8,8 +8,5 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
-
-      - name: Build
-        run: |
-          docker build -f Dockerfile .
+      - uses: actions/checkout@v4
+      - run: docker build -f Dockerfile .
