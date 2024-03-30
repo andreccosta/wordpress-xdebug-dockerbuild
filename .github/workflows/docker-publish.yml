@@ -17,11 +17,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
-
-      - name: Build
-        run: |
-          docker build -f Dockerfile .
+      - uses: actions/checkout@v4
+      - run: docker build -f Dockerfile .
 
   tag:
     runs-on: ubuntu-latest
@@ -31,29 +28,25 @@ jobs:
       tag_exists: ${{ steps.check-tag.outputs.result }}
 
     steps:
-      - uses: actions/checkout@v3
-
+      - uses: actions/checkout@v4
       - name: Get dockerhub wordpress latest version tag
         id: image-tag
         uses: ./.github/actions/get-dockerhub-version-tag
         with:
           org: 'library'
           repo: 'wordpress'
-
       - name: Get Xdebug pecl package version
         id: package-version
         uses: ./.github/actions/get-pecl-package-version
         with:
           package: 'xdebug'
           stability: 'stable'
-
       - name: Create tag
         id: create-tag
         run: echo "tag=wp${{ steps.image-tag.outputs.tag}}-xdebug${{ steps.package-version.outputs.version }}" >> $GITHUB_OUTPUT
-
       - name: Check if tag already exists
         id: check-tag
-        uses: actions/github-script@v6
+        uses: actions/github-script@v7
         with:
           script: |
             let tag_exists = 0;
@@ -70,11 +63,10 @@ jobs:
             }
 
             return tag_exists;
-
       - name: Push tag
         id: push-tag
         if: steps.check-tag.outputs.result == 0
-        uses: actions/github-script@v6
+        uses: actions/github-script@v7
         with:
           script: |
             github.rest.git.createRef({
@@ -92,24 +84,19 @@ jobs:
     if: needs.tag.outputs.tag_exists == 0
 
     steps:
-      - uses: actions/checkout@v3
-
-      - name: Build image
-        run: docker build -f Dockerfile -t $IMAGE_NAME .
-
+      - uses: actions/checkout@v4
+      - run: docker build -f Dockerfile -t $IMAGE_NAME .
       - name: Login to Docker Hub
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           username: ${{ github.actor }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-
       - name: Login to Github Container Registry
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Push image
         run: |
           GH_IMAGE_ID=ghcr.io/${{ github.repository }}/$IMAGE_NAME
