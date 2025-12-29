@@ -6,7 +6,7 @@ The XDebug extension can be configured via environment variables. Namely **XDEBU
 
 For example to allow XDebug to try to automatically connect back to the client that made the HTTP request you would add `discover_client_host=true` to **XDEBUG_CONFIG**. Or in scenarios where that is not feasible you would provide the Docker host IP address and set it as `client_host=<host ip>`.
 
-For Docker 18.03.x and up, non-Linux users should be able to just use `client_host=host.docker.internal`. Linux users should use `client_host=172.17.0.1` instead.
+For Docker 18.03.x and up, non-Linux users should be able to just use `client_host=host.docker.internal`. Linux users should configure `extra_hosts` with `host-gateway` instead.
 
 You can check additional information about what XDebug settings are available in the documentation [here](https://xdebug.org/docs/all_settings).
 
@@ -15,33 +15,33 @@ You can check additional information about what XDebug settings are available in
 Example configuration file `docker-compose.yml`:
 
 ```yml
-version: '3.9'
-
 services:
   db:
-    image: mysql:5.7
+    image: mariadb:11
     restart: on-failure
     environment:
-      MYSQL_ROOT_PASSWORD: somewordpress
-      MYSQL_DATABASE: wordpress
-      MYSQL_USER: wordpress
-      MYSQL_PASSWORD: wordpress
+      MARIADB_ROOT_PASSWORD: wordpress
+      MARIADB_DATABASE: wordpress
+      MARIADB_USER: wordpress
+      MARIADB_PASSWORD: wordpress
 
   wp:
     depends_on:
-    - db
-    image: andreccosta/wordpress-xdebug
+      - db
+    image: andreccosta/wordpress-xdebug:latest
     volumes:
-    - ./wp:/var/www/html
+      - ./wp:/var/www/html
     ports:
-    - 8080:80
+      - 8080:80
     restart: on-failure
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
       WORDPRESS_DB_HOST: db:3306
       WORDPRESS_DB_USER: wordpress
       WORDPRESS_DB_PASSWORD: wordpress
       XDEBUG_MODE: debug
-      XDEBUG_CONFIG: start_with_request=yes client_host=host.docker.internal client_port=9000
+      XDEBUG_CONFIG: start_with_request=yes client_host=host.docker.internal client_port=9003
 ```
 
 ## Visual Studio Code
@@ -60,7 +60,7 @@ Example configuration file `.vscode/launch.json`:
       "name": "Listen for XDebug",
       "type": "php",
       "request": "launch",
-      "port": 9000,
+      "port": 9003,
       "pathMappings": {
         "/var/www/html": "${workspaceRoot}/wp",
       }
