@@ -1,0 +1,62 @@
+version: 2
+
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      actions:
+        patterns:
+          - "*"
+
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      docker:
+        patterns:
+          - "*"
+
+  - package-ecosystem: docker
+    directory: /.github/actions/get-dockerhub-version-tag
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      docker:
+        patterns:
+          - "*"
+
+  - package-ecosystem: docker
+    directory: /.github/actions/get-pecl-package-version
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      docker:
+        patterns:
+          - "*"
+
+  - package-ecosystem: gomod
+    directory: /.github/actions/get-dockerhub-version-tag
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      go-modules:
+        patterns:
+          - "*"
+
+  - package-ecosystem: gomod
+    directory: /.github/actions/get-pecl-package-version
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      go-modules:
+        patterns:
+          - "*"
