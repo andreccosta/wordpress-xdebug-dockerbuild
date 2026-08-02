@@ -1,20 +1,27 @@
-# Wordpress with XDebug Docker image
+# WordPress with Xdebug Docker image
+
+This image extends the official WordPress image with Xdebug installed and
+configured for step debugging on port 9000. Although Xdebug 3 defaults to port
+9003, this image retains port 9000 for compatibility with existing users.
 
 ## Usage
 
-The XDebug extension can be configured via environment variables. Namely **XDEBUG_MODE** and **XDEBUG_CONFIG**.
+Configure Xdebug at runtime with `XDEBUG_MODE` and `XDEBUG_CONFIG`. For example,
+set `discover_client_host=true` to have Xdebug connect to the client that made
+the HTTP request. When client discovery is not suitable, set
+`client_host=<host>` explicitly.
 
-For example to allow XDebug to try to automatically connect back to the client that made the HTTP request you would add `discover_client_host=true` to **XDEBUG_CONFIG**. Or in scenarios where that is not feasible you would provide the Docker host IP address and set it as `client_host=<host ip>`.
+Docker Desktop provides `host.docker.internal`. On Linux with Docker Engine,
+map that hostname to Docker's `host-gateway`, as shown below.
 
-For Docker 18.03.x and up, non-Linux users should be able to just use `client_host=host.docker.internal`. Linux users should configure `extra_hosts` with `host-gateway` instead.
-
-You can check additional information about what XDebug settings are available in the documentation [here](https://xdebug.org/docs/all_settings).
+See the [Xdebug settings documentation](https://xdebug.org/docs/all_settings)
+for all available options.
 
 ## Docker Compose
 
-Example configuration file `docker-compose.yml`:
+Example `compose.yml`:
 
-```yml
+```yaml
 services:
   db:
     image: mariadb:11
@@ -41,30 +48,48 @@ services:
       WORDPRESS_DB_USER: wordpress
       WORDPRESS_DB_PASSWORD: wordpress
       XDEBUG_MODE: debug
-      XDEBUG_CONFIG: start_with_request=yes client_host=host.docker.internal client_port=9003
+      XDEBUG_CONFIG: client_host=host.docker.internal client_port=9000
 ```
 
 ## Visual Studio Code
 
-To use XDebug in Visual Studio Code you need the [PHP Debug extension](https://marketplace.visualstudio.com/items?itemName=felixfbecker.php-debug).
+Install the [PHP Debug extension](https://marketplace.visualstudio.com/items?itemName=xdebug.php-debug)
+and configure `pathMappings` so VS Code can map container paths to local files.
 
-Also to make VS Code map the paths on the container to the ones on the host, you have to set the pathMappings settings in your `launch.json`.
-
-Example configuration file `.vscode/launch.json`:
+Example `.vscode/launch.json`:
 
 ```json
 {
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Listen for XDebug",
+      "name": "Listen for Xdebug",
       "type": "php",
       "request": "launch",
-      "port": 9003,
+      "port": 9000,
       "pathMappings": {
-        "/var/www/html": "${workspaceRoot}/wp",
+        "/var/www/html": "${workspaceFolder}/wp"
       }
     }
   ]
 }
+```
+
+## Building
+
+By default, a local build uses the latest WordPress image and stable Xdebug
+release:
+
+```sh
+docker build -t wordpress-xdebug .
+```
+
+For a reproducible version combination, pass both build arguments:
+
+```sh
+docker build \
+  --build-arg WORDPRESS_VERSION=7.0.2 \
+  --build-arg XDEBUG_VERSION=3.5.3 \
+  -t wordpress-xdebug:wp7.0.2-xdebug3.5.3 \
+  .
 ```
