@@ -20,4 +20,7 @@ for directory in "${action_directories[@]}"; do
 done
 
 echo "Building WordPress image"
-docker build .
+docker build \
+  --build-arg "WORDPRESS_VERSION=${WORDPRESS_VERSION:-latest}" \
+  --build-arg "XDEBUG_VERSION=${XDEBUG_VERSION:-}" \
+  .

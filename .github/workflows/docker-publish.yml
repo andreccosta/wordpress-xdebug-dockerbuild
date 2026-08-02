@@ -4,8 +4,6 @@ on:
   push:
     branches:
       - main
-    tags:
-      - wp*
   schedule:
     - cron: '0 4 * * 0'
 
@@ -13,8 +11,55 @@ env:
   IMAGE_NAME: wordpress-xdebug
 
 jobs:
+  metadata:
+    runs-on: ubuntu-latest
+
+    outputs:
+      tag: ${{ steps.create-tag.outputs.tag }}
+      tag_exists: ${{ steps.check-tag.outputs.result }}
+      wordpress_version: ${{ steps.image-tag.outputs.tag }}
+      xdebug_version: ${{ steps.package-version.outputs.version }}
+
+    steps:
+      - uses: actions/checkout@v6
+      - name: Get Docker Hub WordPress latest version tag
+        id: image-tag
+        uses: ./.github/actions/get-dockerhub-version-tag
+        with:
+          org: library
+          repo: wordpress
+      - name: Get Xdebug PECL package version
+        id: package-version
+        uses: ./.github/actions/get-pecl-package-version
+        with:
+          package: xdebug
+          stability: stable
+      - name: Create tag
+        id: create-tag
+        run: echo "tag=wp${{ steps.image-tag.outputs.tag }}-xdebug${{ steps.package-version.outputs.version }}" >> "$GITHUB_OUTPUT"
+      - name: Check if tag already exists
+        id: check-tag
+        uses: actions/github-script@v8
+        with:
+          script: |
+            try {
+              await github.rest.git.getRef({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                ref: "tags/${{ steps.create-tag.outputs.tag }}"
+              });
+              return 1;
+            } catch (error) {
+              if (error.status !== 404) throw error;
+              return 0;
+            }
+
   test:
     runs-on: ubuntu-latest
+    needs: metadata
+    env:
+      WORDPRESS_VERSION: ${{ needs.metadata.outputs.wordpress_version }}
+      XDEBUG_VERSION: ${{ needs.metadata.outputs.xdebug_version }}
 
     steps:
       - uses: actions/checkout@v6
@@ -26,98 +71,59 @@ jobs:
             .github/actions/get-pecl-package-version/go.sum
       - run: .github/scripts/check.sh
 
-  tag:
-    runs-on: ubuntu-latest
-
-    outputs:
-      tag: ${{ steps.create-tag.outputs.tag }}
-      tag_exists: ${{ steps.check-tag.outputs.result }}
-
-    steps:
-      - uses: actions/checkout@v6
-      - name: Get dockerhub wordpress latest version tag
-        id: image-tag
-        uses: ./.github/actions/get-dockerhub-version-tag
-        with:
-          org: 'library'
-          repo: 'wordpress'
-      - name: Get Xdebug pecl package version
-        id: package-version
-        uses: ./.github/actions/get-pecl-package-version
-        with:
-          package: 'xdebug'
-          stability: 'stable'
-      - name: Create tag
-        id: create-tag
-        run: echo "tag=wp${{ steps.image-tag.outputs.tag}}-xdebug${{ steps.package-version.outputs.version }}" >> $GITHUB_OUTPUT
-      - name: Check if tag already exists
-        id: check-tag
-        uses: actions/github-script@v8
-        with:
-          script: |
-            let tag_exists = 0;
-
-            try {
-              await github.rest.git.getRef({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                ref: "tags/${{ steps.create-tag.outputs.tag }}"
-              })
-              tag_exists = 1;
-            } catch(err) {
-              if (err.status != 404) throw err;
-            }
-
-            return tag_exists;
-      - name: Push tag
-        id: push-tag
-        if: steps.check-tag.outputs.result == 0
-        uses: actions/github-script@v8
-        with:
-          script: |
-            github.rest.git.createRef({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              ref: "refs/tags/${{ steps.create-tag.outputs.tag }}",
-              sha: context.sha
-            })
-
   push:
     environment: production
-    needs: [tag, test]
-
+    needs: [metadata, test]
+    if: needs.metadata.outputs.tag_exists == 0
     runs-on: ubuntu-latest
-    if: needs.tag.outputs.tag_exists == 0
+    permissions:
+      contents: write
+      packages: write
 
     steps:
       - uses: actions/checkout@v6
-      - run: docker build -f Dockerfile -t $IMAGE_NAME .
+      - name: Build image
+        run: |
+          docker build \
+            --build-arg "WORDPRESS_VERSION=${{ needs.metadata.outputs.wordpress_version }}" \
+            --build-arg "XDEBUG_VERSION=${{ needs.metadata.outputs.xdebug_version }}" \
+            --tag "$IMAGE_NAME" \
+            .
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
-          username: ${{ github.actor }}
+          username: ${{ github.repository_owner }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - name: Login to Github Container Registry
+      - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Push image
+        env:
+          VERSION: ${{ needs.metadata.outputs.tag }}
         run: |
           GH_IMAGE_ID=ghcr.io/${{ github.repository }}/$IMAGE_NAME
-          DH_IMAGE_ID=${{ github.actor }}/$IMAGE_NAME
+          DH_IMAGE_ID=${{ github.repository_owner }}/$IMAGE_NAME
 
-          # Change all uppercase to lowercase
-          GH_IMAGE_ID=$(echo $GH_IMAGE_ID | tr '[A-Z]' '[a-z]')
-          DH_IMAGE_ID=$(echo $DH_IMAGE_ID | tr '[A-Z]' '[a-z]')
+          # Container image names must be lowercase.
+          GH_IMAGE_ID=$(echo "$GH_IMAGE_ID" | tr '[:upper:]' '[:lower:]')
+          DH_IMAGE_ID=$(echo "$DH_IMAGE_ID" | tr '[:upper:]' '[:lower:]')
 
-          # Version from created tag
-          VERSION=${{ needs.tag.outputs.tag }}
-
-          docker tag $IMAGE_NAME $GH_IMAGE_ID:latest
-          docker tag $IMAGE_NAME $GH_IMAGE_ID:$VERSION
-          docker tag $IMAGE_NAME $DH_IMAGE_ID:latest
-          docker tag $IMAGE_NAME $DH_IMAGE_ID:$VERSION
-          docker push --all-tags $GH_IMAGE_ID
-          docker push --all-tags $DH_IMAGE_ID
+          docker tag "$IMAGE_NAME" "$GH_IMAGE_ID:latest"
+          docker tag "$IMAGE_NAME" "$GH_IMAGE_ID:$VERSION"
+          docker tag "$IMAGE_NAME" "$DH_IMAGE_ID:latest"
+          docker tag "$IMAGE_NAME" "$DH_IMAGE_ID:$VERSION"
+          docker push --all-tags "$GH_IMAGE_ID"
+          docker push --all-tags "$DH_IMAGE_ID"
+      - name: Create version tag
+        uses: actions/github-script@v8
+        with:
+          script: |
+            await github.rest.git.createRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: "refs/tags/${{ needs.metadata.outputs.tag }}",
+              sha: context.sha
+            });
