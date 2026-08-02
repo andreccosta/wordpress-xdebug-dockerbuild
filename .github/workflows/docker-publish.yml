@@ -18,7 +18,13 @@ jobs:
 
     steps:
       - uses: actions/checkout@v6
-      - run: docker build -f Dockerfile .
+      - uses: actions/setup-go@v6
+        with:
+          go-version: stable
+          cache-dependency-path: |
+            .github/actions/get-dockerhub-version-tag/go.sum
+            .github/actions/get-pecl-package-version/go.sum
+      - run: .github/scripts/check.sh
 
   tag:
     runs-on: ubuntu-latest
