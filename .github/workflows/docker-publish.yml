@@ -21,7 +21,7 @@ jobs:
       xdebug_version: ${{ steps.package-version.outputs.version }}
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Get Docker Hub WordPress latest version tag
         id: image-tag
         uses: ./.github/actions/get-dockerhub-version-tag
@@ -39,7 +39,7 @@ jobs:
         run: echo "tag=wp${{ steps.image-tag.outputs.tag }}-xdebug${{ steps.package-version.outputs.version }}" >> "$GITHUB_OUTPUT"
       - name: Check if tag already exists
         id: check-tag
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           script: |
             try {
@@ -62,8 +62,8 @@ jobs:
       XDEBUG_VERSION: ${{ needs.metadata.outputs.xdebug_version }}
 
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-go@v6
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
         with:
           go-version: stable
           cache-dependency-path: |
@@ -81,7 +81,7 @@ jobs:
       packages: write
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Build image
         run: |
           docker build \
@@ -90,12 +90,12 @@ jobs:
             --tag "$IMAGE_NAME" \
             .
       - name: Login to Docker Hub
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -118,7 +118,7 @@ jobs:
           docker push --all-tags "$GH_IMAGE_ID"
           docker push --all-tags "$DH_IMAGE_ID"
       - name: Create version tag
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           script: |
             await github.rest.git.createRef({
