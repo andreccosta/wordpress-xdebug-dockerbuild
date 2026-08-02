@@ -1,17 +1,14 @@
-FROM golang:1.22 as builder
+FROM golang:1.26 AS builder
 
-WORKDIR /app
-COPY . /app
+WORKDIR /src
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . ./
 
-RUN go get -d -v
+RUN CGO_ENABLED=0 go build -ldflags="-w -s" -o /action .
 
-# Statically compile our app for use in a distroless container
-RUN CGO_ENABLED=0 go build -ldflags="-w -s" -v -o app .
+FROM gcr.io/distroless/static-debian13
 
-# A distroless container image with some basics like SSL certificates
-# https://github.com/GoogleContainerTools/distroless
-FROM gcr.io/distroless/static
+COPY --from=builder /action /action
 
-COPY --from=builder /app/app /app
-
-ENTRYPOINT ["/app"]
+ENTRYPOINT ["/action"]
